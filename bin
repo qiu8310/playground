@@ -1,0 +1,77 @@
+#!/usr/bin/env node
+
+const path = require('path')
+const ROOT = path.resolve(__dirname)
+
+const cli = require('mora-scripts/libs/tty/cli')
+const error = require('mora-scripts/libs/sys/error')
+const clog = require('mora-scripts/libs/sys/clog')
+const shell = require('mora-scripts/libs/tty/shell')
+
+cli({
+  usage: './bin [options] <command>',
+  desc: [
+    '建义使用 Unix alias 来别名此程序，方便快速调用\n',
+    `如：将命令  alias somename="${__filename}"`,
+    '添加到 ~/.bashrc 下，其中 somename 可以改成你想要的别名'
+  ].join('\n  ')
+})
+.options({
+  'p | product': '<string> 指定要开发或发布的产品',
+  host: '<string> 指定开发用的 host，默认是 localhost',
+  port: '<number> 指定开发用的端口号，默认是根据产品名自动分配'
+})
+.commands({
+  dev: {desc: '开发模式', cmd: devCmd},
+  release: {desc: '编译并发布', cmd: releaseCmd},
+  fix: {desc: '使用 eslint 修复 js 文件的语法', cmd: fixCmd}
+})
+.parse(mainCmd)
+
+function mainCmd(res) {
+  this.help()
+}
+
+function devCmd(res) {
+  if (setEnvs('development', res)) {
+    run('./node_modules/.bin/webpack-dev-server --hot', {stdio: 'inherit'})
+    // run('./node_modules/.bin/webpack-dev-server --hot --open', {stdio: 'inherit'})
+  }
+}
+
+function releaseCmd(res) {
+  if (setEnvs('production', res)) {
+    run('./node_modules/.bin/webpack -p --progress', {stdio: 'inherit'})
+  }
+}
+
+function fixCmd(res) {
+  if (res._.length) {
+    let files = res._.map(f => path.join(ROOT, f)).join(' ')
+    let eslint = path.join(ROOT, 'node_modules/.bin/eslint')
+    run(`${eslint} --fix ${files}`)
+  }
+}
+
+function setEnvs(env, res) {
+  if (!res.product) {
+    error('没有指定产品名称!!!')
+    return false
+  }
+  process.env.NODE_ENV = env
+  process.env.PRODUCT = res.product
+  if (res.host) process.env.HOST = res.host
+  if (res.port) process.env.PORT = res.port
+  return true
+}
+
+function run(cmd) {
+  console.log('running %s ...', clog.format('%c' + cmd, 'cyan'))
+  return new Promise((resolve, reject) => {
+    shell(cmd, {stdio: 'inherit'})
+      .on('close', code => {
+        if (code) reject(code)
+        else resolve()
+      })
+  })
+}
