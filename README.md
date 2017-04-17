@@ -7,6 +7,10 @@
     eslint-plugin-react
     eslint-plugin-standard
 
+## style lint package
+
+    sasslint
+    sasslint-webpack-plugin
 
 ## babel packages
 
@@ -33,9 +37,10 @@
 ## webpack packages
 
     babel-loader
-
     html-webpack-plugin
+    copy-webpack-plugin
     extract-text-webpack-plugin
+    mora-favicons-webpack-plugin (favicons-webpack-plugin@0.0.7 还不支持 webpack 2.x)
 
-    style-loader css-loader sass-loader sasslint sasslint-webpack-plugin
+    style-loader css-loader sass-loader
     file-loader url-loader

@@ -3,6 +3,8 @@ const path = require('path')
 const fs = require('fs-extra')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+const FaviconsWebpackPlugin = require('mora-favicons-webpack-plugin')
 const SassLintPlugin = require('sasslint-webpack-plugin')
 
 const error = require('mora-scripts/libs/sys/error')
@@ -13,6 +15,8 @@ const env = conf.env
 const ROOT_DIR = __dirname
 const SRC_DIR = path.join(ROOT_DIR, 'src', env.PRODUCT)
 const DIST_DIR = path.join(ROOT_DIR, 'public', env.PRODUCT)
+const SERVER_DIR = path.join(ROOT_DIR, 'res')
+const NODE_MODULES_DIR = path.join(ROOT_DIR, 'node_modules')
 
 if (!fs.existsSync(SRC_DIR)) { error(`文件夹 ${SRC_DIR} 不存在`); process.exit(1) }
 if (env.BUILD) { fs.ensureDirSync(DIST_DIR); fs.emptyDirSync(DIST_DIR) }
@@ -23,7 +27,9 @@ const PAGES = getPagesFromTemplates(TEMPLATES)
 
 // app 专属配置
 const RC = (() => { try { return fs.readJsonSync(path.join(SRC_DIR, '__.rc')) } catch (e) { return {} } })()
-const USE_CSS_MODULE = !!RC.useCssModule
+const RC_USE_CSS_MODULE = !!RC.useCssModule
+const RC_TITLE = RC.title || `Mora's ${env.PRODUCT}`
+const RC_LOGO = RC.logo ? path.resolve(SRC_DIR, RC.logo) : path.join(SERVER_DIR, 'share/logo.svg')
 
 const cssnanoOptions = { // http://cssnano.co/optimisations/
   autoprefixer: {
@@ -68,15 +74,24 @@ module.exports = {
   },
 
   plugins: [
-    new SassLintPlugin({
-      configFile: path.join(ROOT_DIR, '.sass-lint.yml'),
-      ignorePlugins: ['html-webpack-plugin', 'extract-text-webpack-plugin']
-    }),
+    // new SassLintPlugin({
+    //   configFile: path.join(ROOT_DIR, '.sass-lint.yml'),
+    //   ignorePlugins: ['html-webpack-plugin', 'extract-text-webpack-plugin']
+    // }),
 
     new webpack.DefinePlugin(Object.keys(env).reduce((res, k) => {
       res['__' + k + '__'] = JSON.stringify(env[k])
       return res
-    }, {})),
+    }, {
+      'process.env': {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV || env.ENV)
+      }
+    })),
+
+    new CopyWebpackPlugin([
+      {from: path.join(SRC_DIR, 'static'), to: 'static'},
+      {from: path.join(SERVER_DIR, 'share'), to: 'share'}
+    ]),
 
     new webpack.ProvidePlugin({
       React: 'react',
@@ -87,9 +102,22 @@ module.exports = {
       name: 'common',
       minSize: 1000,
       minChunks: (module, count) => {
-        return module.resource && module.resource.indexOf(path.join(ROOT_DIR, 'node_modules')) === 0
-          // 如果是多页面，则只要 chunk 被引用了 3 次或以上就提取到 common 中
-          || TEMPLATES.length > 1 && count > 2
+        let res = module.resource
+        // 系统使用的文件
+        let systemResources = [
+          'base64-js/index.js',
+          'buffer/index.js',
+          'css-loader/lib/css-base.js',
+          'ieee754/index.js',
+          'isarray/index.js',
+          'webpack/buildin/global.js',
+          'style-loader/fixUrls.js',
+          'style-loader/addStyles.js'
+        ].map(r => path.normalize(path.join(NODE_MODULES_DIR, r)))
+
+        return res && systemResources.indexOf(res) < 0 && res.indexOf(NODE_MODULES_DIR) === 0
+          // 如果是多页面，则只要 chunk 被引用了 2 次或以上就提取到 common 中
+          || TEMPLATES.length > 1 && count >= 2
       }
     }),
 
@@ -106,10 +134,34 @@ module.exports = {
       disable: !env.BUILD
     }),
 
+    new FaviconsWebpackPlugin({
+      logo: RC_LOGO,
+      prefix: 'icons/[hash:5]-',
+      emitStats: false,
+      statsFilename: 'icons/stats.json',
+      persistentCache: env.DEV,
+      inject: true,
+      background: '#000000',
+      title: RC_TITLE,
+      icons: {
+        android: false,
+        appleIcon: false,
+        appleStartup: false,
+        coast: false,
+        favicons: true,
+        firefox: false,
+        opengraph: false,
+        twitter: false,
+        yandex: false,
+        windows: false
+      }
+    }),
+
     ...PAGES.map((page, i) => new HtmlWebpackPlugin({
       inject: true,
       template: path.join(SRC_DIR, TEMPLATES[i]),
       filename: page + '.html',
+      title: RC_TITLE,
       chunks: [page, 'common']
     }))
   ],
@@ -122,23 +174,24 @@ module.exports = {
         use: ['babel-loader', {loader: 'eslint-loader', options: {emitWarning: true}}]
       },
 
-      USE_CSS_MODULE
+      RC_USE_CSS_MODULE
         ? {test: /\.css$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [moduleCssLoader]})} // module
         : {test: /\.css$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [normalCssLoader]})}, // normal
 
-      USE_CSS_MODULE
+      RC_USE_CSS_MODULE
         ? {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [moduleCssLoader, normalSassLoader]})} // module
         : {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [normalCssLoader, normalSassLoader]})}, // normal
       // {test: /\.s(c|a)ss$/, use: ['style-loader', normalCssLoader, normalSassLoader]} // inline
 
       // 静态资源必须要打上 hash，否则不同文件夹下如果有相同的文件会导致重名
-      {test: /\.(png|jpg|jpeg)$/, use: 'url-loader?limit=2048&name=static/[hash].[ext]'},
-      {test: /\.(gif|svg|woff|woff2|ttf|eot|otf)$/, use: 'file-loader?name=static/[hash].[ext]'}
+      {test: /\.(gif|png|jpg|jpeg)$/, use: 'url-loader?limit=2048&name=static/[hash].[ext]'},
+      {test: /\.(ico|svg|woff|woff2|ttf|eot|otf)$/, use: 'file-loader?name=static/[hash].[ext]'}
     ]
   },
 
   devServer: {
-    stats: 'minimal',
+    contentBase: SERVER_DIR,
+    stats: 'minimal', // verbose normal minimal
     port: env.PORT,
     host: env.HOST,
     historyApiFallback: true

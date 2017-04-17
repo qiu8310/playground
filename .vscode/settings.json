@@ -2,6 +2,7 @@
 {
   "path-intellisense.mappings": {
     "libs": "${workspaceRoot}/libs",
-    "src": "${workspaceRoot}/src"
+    "src": "${workspaceRoot}/src",
+    "share": "${workspaceRoot}/res/share"
   }
 }

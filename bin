@@ -8,22 +8,29 @@ const error = require('mora-scripts/libs/sys/error')
 const clog = require('mora-scripts/libs/sys/clog')
 const shell = require('mora-scripts/libs/tty/shell')
 
+const ALIAS = process.env.ALIAS
+const PROJECT = ALIAS || './bin'
+
 cli({
-  usage: './bin [options] <command>',
-  desc: [
+  usage: `${PROJECT} [options] <command>`,
+  desc: ALIAS ? '' : [
     '建义使用 Unix alias 来别名此程序，方便快速调用\n',
-    `如：将命令  alias somename="${__filename}"`,
-    '添加到 ~/.bashrc 下，其中 somename 可以改成你想要的别名'
-  ].join('\n  ')
+    `  如：将命令  ALIAS=t alias t="${__filename}"`,
+    '  添加到 ~/.bashrc 下，其中 t 可以改成你想要的别名'
+  ].join('\n'),
+  example: [
+    ` ${PROJECT} --port 5000 -p someApp dev # 进入 someApp 的开发模式，并设置服务器端口为 5000 `,
+    ` ${PROJECT} -p someApp build           # 编译 someApp `
+  ]
 })
 .options({
-  'p | product': '<string> 指定要开发或发布的产品',
+  'p | product': '<string> 指定要开发或编译的产品名称【必须提供此参数】',
   host: '<string> 指定开发用的 host，默认是 localhost',
   port: '<number> 指定开发用的端口号，默认是根据产品名自动分配'
 })
 .commands({
   dev: {desc: '开发模式', cmd: devCmd},
-  release: {desc: '编译并发布', cmd: releaseCmd},
+  build: {desc: '编译', cmd: buildCmd},
   fix: {desc: '使用 eslint 修复 js 文件的语法', cmd: fixCmd}
 })
 .parse(mainCmd)
@@ -34,28 +41,29 @@ function mainCmd(res) {
 
 function devCmd(res) {
   if (setEnvs('development', res)) {
-    run('./node_modules/.bin/webpack-dev-server --hot', {stdio: 'inherit'})
-    // run('./node_modules/.bin/webpack-dev-server --hot --open', {stdio: 'inherit'})
+    // run('~/webpack-dev-server --hot --open')
+    run('~/webpack-dev-server --hot')
   }
 }
 
-function releaseCmd(res) {
+function buildCmd(res) {
   if (setEnvs('production', res)) {
-    run('./node_modules/.bin/webpack -p --progress', {stdio: 'inherit'})
+    run('~/webpack --progress')
+    // run('~/webpack -p --progress')
   }
 }
 
 function fixCmd(res) {
-  if (res._.length) {
-    let files = res._.map(f => path.join(ROOT, f)).join(' ')
-    let eslint = path.join(ROOT, 'node_modules/.bin/eslint')
-    run(`${eslint} --fix ${files}`)
+  if (!res._.length) {
+    return error('请指定要 fix 的文件!!!')
   }
+  let files = res._.map(f => path.join(ROOT, f)).join(' ')
+  run(`~/eslint --fix ${files}`)
 }
 
 function setEnvs(env, res) {
   if (!res.product) {
-    error('没有指定产品名称!!!')
+    error('请指定产品名称!!!')
     return false
   }
   process.env.NODE_ENV = env
@@ -66,6 +74,7 @@ function setEnvs(env, res) {
 }
 
 function run(cmd) {
+  cmd = cmd.replace(/~\//g, path.join(ROOT, 'node_modules', '.bin') + '/')
   console.log('running %s ...', clog.format('%c' + cmd, 'cyan'))
   return new Promise((resolve, reject) => {
     shell(cmd, {stdio: 'inherit'})
