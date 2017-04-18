@@ -1,3 +1,13 @@
-body {
-  background: gold;
+.textCenter { text-align: center; }
+
+.lineClamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
 }
+@for $i from 1 through 4 {
+  .lineClamp#{$i} {
+    -webkit-line-clamp: $i;
+  }
+}
+

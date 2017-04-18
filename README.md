@@ -1,4 +1,13 @@
-## eslint packages
+
+## TODOs
+
+* [ ] 测试集成
+* [ ] 添加 libs 中的通用功能
+* [ ] fix: webpack.config.js 中提取 commonChunk 的 minChunk 函数
+
+## packages
+
+### eslint packages
 
     eslint
     babel-eslint
@@ -7,12 +16,13 @@
     eslint-plugin-react
     eslint-plugin-standard
 
-## style lint package
+### stylelint package
 
-    sasslint
-    sasslint-webpack-plugin
+    stylelint
+    stylelint-scss
+    stylelint-webpack-plugin
 
-## babel packages
+### babel packages
 
     babel-core
 
@@ -34,7 +44,7 @@
     babel-plugin-transform-es3-member-expression-literals
     babel-plugin-transform-es3-property-literals
 
-## webpack packages
+### webpack packages
 
     babel-loader
     html-webpack-plugin
@@ -42,5 +52,5 @@
     extract-text-webpack-plugin
     mora-favicons-webpack-plugin (favicons-webpack-plugin@0.0.7 还不支持 webpack 2.x)
 
-    style-loader css-loader sass-loader
+    style-loader css-loader postcss-loader sass-loader
     file-loader url-loader

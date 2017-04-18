@@ -11,6 +11,7 @@ const shell = require('mora-scripts/libs/tty/shell')
 const ALIAS = process.env.ALIAS
 const PROJECT = ALIAS || './bin'
 
+
 cli({
   usage: `${PROJECT} [options] <command>`,
   desc: ALIAS ? '' : [
@@ -23,11 +24,21 @@ cli({
     ` ${PROJECT} -p someApp build           # 编译 someApp `
   ]
 })
-.options({
-  'p | product': '<string> 指定要开发或编译的产品名称【必须提供此参数】',
-  host: '<string> 指定开发用的 host，默认是 localhost',
-  port: '<number> 指定开发用的端口号，默认是根据产品名自动分配'
+/* eslint-disable key-spacing */
+.options('dev options', {
+  open: '<boolean>  打开浏览器',
+  host: '<string>   指定开发用的 host，默认是 localhost',
+  port: '<number>   指定开发用的端口号，默认是 8000'
 })
+.options('build options', {
+  pretty:     '<boolean>  不压缩代码'
+})
+.options({
+  'p | product':  '<string>   指定要开发或编译的产品名称（必须提供此参数）',
+  noFavicon:      '<boolean>  是否使用 favicon 插件，favicon 插件会影响 webpack 编译速度'
+})
+
+/* eslint-enable key-spacing */
 .commands({
   dev: {desc: '开发模式', cmd: devCmd},
   build: {desc: '编译', cmd: buildCmd},
@@ -41,15 +52,13 @@ function mainCmd(res) {
 
 function devCmd(res) {
   if (setEnvs('development', res)) {
-    // run('~/webpack-dev-server --hot --open')
-    run('~/webpack-dev-server --hot')
+    run(`~/webpack-dev-server --hot ${res.open ? '--open' : ''}`)
   }
 }
 
 function buildCmd(res) {
   if (setEnvs('production', res)) {
-    run('~/webpack --progress')
-    // run('~/webpack -p --progress')
+    run(`~/webpack ${res.pretty ? '' : '-p'} --progress`)
   }
 }
 
@@ -68,8 +77,9 @@ function setEnvs(env, res) {
   }
   process.env.NODE_ENV = env
   process.env.PRODUCT = res.product
-  if (res.host) process.env.HOST = res.host
-  if (res.port) process.env.PORT = res.port
+  process.env.HOST = res.host || 'localhost'
+  process.env.PORT = res.port || '8000'
+  if (res.noFavicon) process.env.NO_FAVICON = 'yes'
   return true
 }
 

@@ -5,7 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const FaviconsWebpackPlugin = require('mora-favicons-webpack-plugin')
-const SassLintPlugin = require('sasslint-webpack-plugin')
+const StyleLintPlugin = require('stylelint-webpack-plugin')
 
 const error = require('mora-scripts/libs/sys/error')
 
@@ -38,13 +38,16 @@ const cssnanoOptions = { // http://cssnano.co/optimisations/
     add: true
   }
 }
-const normalCssLoader = {loader: 'css-loader', options: { minimize: cssnanoOptions }}
-const moduleCssLoader = {loader: 'css-loader', options: {
+const getNormalCssLoader = (importLoaders) => ({loader: 'css-loader', options: { importLoaders, minimize: cssnanoOptions }})
+const getModuleCssLoader = (importLoaders) => ({loader: 'css-loader', options: {
   minimize: cssnanoOptions,
   modules: true,
+  importLoaders,
   camelCase: true,
   localIdentName: env.BUILD ? '[hash:base64:8]' : '[name]_[local]_[hash:base64:3]'
-}}
+}})
+// postcss 和 cssmodule 一起使用时要注意： https://github.com/postcss/postcss-loader#css-modules
+const postcssLoader = {loader: 'postcss-loader'}
 const normalSassLoader = {loader: 'sass-loader', options: {includePaths: []}}
 
 module.exports = {
@@ -74,11 +77,6 @@ module.exports = {
   },
 
   plugins: [
-    // new SassLintPlugin({
-    //   configFile: path.join(ROOT_DIR, '.sass-lint.yml'),
-    //   ignorePlugins: ['html-webpack-plugin', 'extract-text-webpack-plugin']
-    // }),
-
     new webpack.DefinePlugin(Object.keys(env).reduce((res, k) => {
       res['__' + k + '__'] = JSON.stringify(env[k])
       return res
@@ -87,6 +85,11 @@ module.exports = {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV || env.ENV)
       }
     })),
+
+    new StyleLintPlugin({
+      emitErrors: false,
+      files: ['src/' + env.PRODUCT + '/**/*.s?(a|c)ss', 'libs/**/*.s?(a|c)ss']
+    }),
 
     new CopyWebpackPlugin([
       {from: path.join(SRC_DIR, 'static'), to: 'static'},
@@ -103,7 +106,9 @@ module.exports = {
       minSize: 1000,
       minChunks: (module, count) => {
         let res = module.resource
-        // 系统使用的文件
+        // FIXME: 如何更好地判断是系统使用的文件？
+        // 当前方法是：将 minSize 去掉，最简源代码的情况下 common.js 应该非常小；
+        // 通过看 terminal 上，可以知道哪些不该加入的 chunk 加入了进来，从而将它写入此
         let systemResources = [
           'base64-js/index.js',
           'buffer/index.js',
@@ -134,28 +139,21 @@ module.exports = {
       disable: !env.BUILD
     }),
 
-    new FaviconsWebpackPlugin({
+    ...getConditionalPlugins(!process.env.NO_FAVICON, () => new FaviconsWebpackPlugin({
       logo: RC_LOGO,
-      prefix: 'icons/[hash:5]-',
+      prefix: 'static/',
       emitStats: false,
-      statsFilename: 'icons/stats.json',
+      statsFilename: 'static/stats.json',
       persistentCache: env.DEV,
       inject: true,
       background: '#000000',
       title: RC_TITLE,
       icons: {
-        android: false,
-        appleIcon: false,
-        appleStartup: false,
-        coast: false,
-        favicons: true,
-        firefox: false,
-        opengraph: false,
-        twitter: false,
-        yandex: false,
-        windows: false
+        coast: false, opengraph: false, twitter: false, yandex: false,
+        windows: false, android: false, appleIcon: false, firefox: false,
+        appleStartup: false, favicons: true
       }
-    }),
+    })),
 
     ...PAGES.map((page, i) => new HtmlWebpackPlugin({
       inject: true,
@@ -175,12 +173,12 @@ module.exports = {
       },
 
       RC_USE_CSS_MODULE
-        ? {test: /\.css$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [moduleCssLoader]})} // module
-        : {test: /\.css$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [normalCssLoader]})}, // normal
+        ? {test: /\.css$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [getModuleCssLoader(1), postcssLoader]})} // module
+        : {test: /\.css$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [getNormalCssLoader(1), postcssLoader]})}, // normal
 
       RC_USE_CSS_MODULE
-        ? {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [moduleCssLoader, normalSassLoader]})} // module
-        : {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [normalCssLoader, normalSassLoader]})}, // normal
+        ? {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [getModuleCssLoader(2), postcssLoader, normalSassLoader]})} // module
+        : {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [getNormalCssLoader(2), postcssLoader, normalSassLoader]})}, // normal
       // {test: /\.s(c|a)ss$/, use: ['style-loader', normalCssLoader, normalSassLoader]} // inline
 
       // 静态资源必须要打上 hash，否则不同文件夹下如果有相同的文件会导致重名
@@ -220,4 +218,8 @@ function outputEnv(env) {
     console.log('%s%s: %j\x1b[0m', color, prefix + k, env[k])
   })
   console.log('\x1b[36m===================================================\x1b[0m\r\n')
+}
+
+function getConditionalPlugins(condition, fn) {
+  return [].concat(condition ? fn() : [])
 }
