@@ -1,9 +1,8 @@
 {
   "name": "@mora/playground",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "通用 webpack + es6 配置，支持多项目",
-  "scripts": {
-  },
+  "scripts": {},
   "config": {
     "hooks": {
       "post-merge": true,
