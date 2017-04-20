@@ -13,14 +13,23 @@
   <meta name="full-screen" content="yes">
   <meta name="format-detection" content="telephone=no;address=no;email=no;">
   <meta http-equiv="cleartype" content="on">
-
+  <%
+    var options = htmlWebpackPlugin.options
+    var env = options.env
+  %>
+  <% if (env.BUILD) { %><base href="/<%= env.PRODUCT %>/<%= options.filename %>"><% } %>
 </head>
 <body>
   <div id="root">
-    <div class="render">
-      <img src="share/logo.svg" />
-      <img src="static/search.png" />
+    <img class="logo" src="share/logo.svg" />
+    <div class="videoWrap">
+      <!-- http://oj6yqqw2b.bkt.clouddn.com/res/lhTYqQ_bfLlgOQzwBInG15RtJ4If -->
+      <video controls preload="metadata"
+        src="http://ojwwwg0d9.qnssl.com/res/lhTYqQ_bfLlgOQzwBInG15RtJ4If">
+      </video>
     <div>
+    <br />
+    <div id='status' style="text-align: center;">ifvisible status logs</div>
   </div>
 </body>
 </html>

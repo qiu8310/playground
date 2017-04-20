@@ -31,6 +31,7 @@ cli({
   port: '<number>   指定开发用的端口号，默认是 8000'
 })
 .options('build options', {
+  hash:       '<boolean>  生成带 hash 的文件',
   pretty:     '<boolean>  不压缩代码'
 })
 .options({
@@ -80,6 +81,7 @@ function setEnvs(env, res) {
   process.env.HOST = res.host || 'localhost'
   process.env.PORT = res.port || '8000'
   if (res.noFavicon) process.env.NO_FAVICON = 'yes'
+  if (res.hash) process.env.HASH = 'yes'
   return true
 }
 

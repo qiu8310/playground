@@ -24,6 +24,9 @@ outputEnv(env)
 
 const TEMPLATES = getTemplatesForDir(SRC_DIR)
 const PAGES = getPagesFromTemplates(TEMPLATES)
+function getAssetName(type) {
+  return (process.env.HASH ? (type === 'css' ? '[contenthash:16]' : '[chunkhash:16]') : '[name]') + '.' + type
+}
 
 // app 专属配置
 const RC = (() => { try { return fs.readJsonSync(path.join(SRC_DIR, '__.rc')) } catch (e) { return {} } })()
@@ -66,7 +69,7 @@ module.exports = {
   output: {
     path: DIST_DIR,
     publicPath: env.BUILD ? '' : `http://${env.HOST}:${env.PORT}/`,
-    filename: 'scripts/[name].js'
+    filename: `scripts/${getAssetName('js')}`
   },
 
   resolve: {
@@ -103,7 +106,7 @@ module.exports = {
 
     new webpack.optimize.CommonsChunkPlugin({
       name: 'common',
-      minSize: 1000,
+      // minSize: 1000,
       minChunks: (module, count) => {
         let res = module.resource
         // FIXME: 如何更好地判断是系统使用的文件？
@@ -135,13 +138,13 @@ module.exports = {
 
     // new ExtractTextPlugin('[name].[contenthash:8].css', {
     new ExtractTextPlugin({
-      filename: 'styles/[name].css',
+      filename: `styles/${getAssetName('css')}`,
       disable: !env.BUILD
     }),
 
     ...getConditionalPlugins(!process.env.NO_FAVICON, () => new FaviconsWebpackPlugin({
       logo: RC_LOGO,
-      prefix: 'static/',
+      prefix: process.env.HASH ? 'static/[hash:10]-' : 'static/',
       emitStats: false,
       statsFilename: 'static/stats.json',
       persistentCache: env.DEV,
@@ -156,9 +159,18 @@ module.exports = {
     })),
 
     ...PAGES.map((page, i) => new HtmlWebpackPlugin({
+      env,
       inject: true,
       template: path.join(SRC_DIR, TEMPLATES[i]),
       filename: page + '.html',
+      minify: {
+        minifyJS: env.BUILD,
+        minifyCSS: env.BUILD,
+        removeComments: true,
+        collapseBooleanAttributes: true,
+        collapseInlineTagWhitespace: true,
+        collapseWhitespace: true
+      },
       title: RC_TITLE,
       chunks: [page, 'common']
     }))

@@ -1,13 +1,19 @@
-.textCenter { text-align: center; }
+@import "libs/styles/mixin/index";
 
-.lineClamp {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
+body, p {
+  margin: 0;
 }
-@for $i from 1 through 4 {
-  .lineClamp#{$i} {
-    -webkit-line-clamp: $i;
+
+.logo {
+  display: block;
+  width: 10vw;
+  max-width: 80px;
+}
+
+.videoWrap {
+  @include wrap($selector: 'video', $width: 100%, $center: false);
+  video {
+    max-height: 400px;
+    background: rgba(0, 0, 0, .85);
   }
 }
-
