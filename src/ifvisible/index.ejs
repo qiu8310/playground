@@ -17,18 +17,14 @@
     var options = htmlWebpackPlugin.options
     var env = options.env
   %>
-  <% if (env.BUILD) { %><base href="/<%= env.PRODUCT %>/<%= options.filename %>"><% } %>
 </head>
 <body>
   <div id="root">
     <img class="logo" src="share/logo.svg" />
     <div class="videoWrap">
       <!-- http://oj6yqqw2b.bkt.clouddn.com/res/lhTYqQ_bfLlgOQzwBInG15RtJ4If -->
-      <video controls preload="metadata"
-        src="http://ojwwwg0d9.qnssl.com/res/lhTYqQ_bfLlgOQzwBInG15RtJ4If">
-      </video>
-    <div>
-    <br />
+      <video controls preload="metadata" src="http://ojwwwg0d9.qnssl.com/res/lhTYqQ_bfLlgOQzwBInG15RtJ4If"></video>
+    </div>
     <div id='status' style="text-align: center;">ifvisible status logs</div>
   </div>
 </body>
