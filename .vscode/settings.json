@@ -1,8 +1,0 @@
-// Place your settings in this file to overwrite default and user settings.
-{
-  "path-intellisense.mappings": {
-    "libs": "${workspaceRoot}/libs",
-    "src": "${workspaceRoot}/src",
-    "share": "${workspaceRoot}/res/share"
-  }
-}
