@@ -1,6 +1,7 @@
 
 
 # Example: fix($compile): couple of unit tests for IE9
+# Guide: http://7u2rjq.com1.z0.glb.clouddn.com/GitCommitMessageConventions.pdf
 #
 # feat, fix, docs, style, refactor, perf, test, chore, revert
 # Added, Changed, Breaks, Deprecated, Removed, Fixed, Security
