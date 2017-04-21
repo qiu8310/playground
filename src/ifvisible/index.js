@@ -1,5 +1,6 @@
 require('./index.scss')
 import ifvisible from 'ifvisible.js'
+import PageVisibility from 'libs/utils/PageVisibility'
 
 !(function(video) {
   let inited = false
@@ -29,16 +30,10 @@ import ifvisible from 'ifvisible.js'
 
     // FIXME: ifvisible.now('active') 在初始化情况下永远都是 true（没有考虑打开时就是 hidden 的情况）
     // FIXME: 浏览器在其它应用程序窗口下面，也会使视频播放
-    if (!isHidden() && ifvisible.now('active')) video.play()
+    if (PageVisibility.isVisible && ifvisible.now('active')) video.play()
 
     ifvisible.blur(() => video.pause())
     ifvisible.focus(() => video.play())
   }
 })(document.querySelector('video'))
 
-function isHidden() {
-  // visibilitychange webkitvisibilitychange mozvisibilitychange msvisibilitychange
-  let hidden = ['hidden', 'webkitHidden', 'mozHidden', 'msHidden']
-    .find(hidden => typeof document[hidden] !== 'undefined')
-  return hidden ? document[hidden] : false
-}
