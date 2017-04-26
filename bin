@@ -31,12 +31,14 @@ cli({
   port: '<number>   指定开发用的端口号，默认是 8000'
 })
 .options('build options', {
+  json:       '<boolean>  生成打包的详情信息',
   hash:       '<boolean>  生成带 hash 的文件',
   pretty:     '<boolean>  不压缩代码'
 })
 .options({
   'p | product':  '<string>   指定要开发或编译的产品名称（必须提供此参数）',
-  noFavicon:      '<boolean>  是否使用 favicon 插件，favicon 插件会影响 webpack 编译速度'
+  noFavicon:      '<boolean>  是否使用 favicon 插件，favicon 插件会影响 webpack 编译速度',
+  noCommon:       '<boolean>  不生成 common chunk'
 })
 
 /* eslint-enable key-spacing */
@@ -59,7 +61,9 @@ function devCmd(res) {
 
 function buildCmd(res) {
   if (setEnvs('production', res)) {
-    run(`~/webpack ${res.pretty ? '' : '-p'} --progress`)
+    let name = `public/modules.${res.noCommon ? 'no' : ''}common.json`
+    let json = `--json > ${name} && ~/webpack-bundle-size-analyzer ${name}`
+    run(`~/webpack ${res.pretty ? '' : '-p'} --progress ${res.json ? json : ''}`)
   }
 }
 
@@ -81,12 +85,14 @@ function setEnvs(env, res) {
   process.env.HOST = res.host || 'localhost'
   process.env.PORT = res.port || '8000'
   if (res.noFavicon) process.env.NO_FAVICON = 'yes'
+  if (res.noCommon) process.env.NO_COMMON = 'yes'
   if (res.hash) process.env.HASH = 'yes'
+  if (res.json) process.env.JSON = 'yes'
   return true
 }
 
 function run(cmd) {
-  cmd = cmd.replace(/~\//g, path.join(ROOT, 'node_modules', '.bin') + '/')
+  cmd = cmd.replace(/~\//g, path.relative(process.cwd(), path.join(ROOT, 'node_modules', '.bin')) + '/')
   console.log('running %s ...', clog.format('%c' + cmd, 'cyan'))
   return new Promise((resolve, reject) => {
     shell(cmd, {stdio: 'inherit'})

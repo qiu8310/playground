@@ -1,7 +1,8 @@
 module.exports = {
   ignoreFiles: [
     'res/share/**',
-    '**/static/**'
+    '**/static/**',
+    '**/public/**'
   ],
   plugins: [
     'stylelint-scss'

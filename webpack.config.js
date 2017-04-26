@@ -53,6 +53,39 @@ const getModuleCssLoader = (importLoaders) => ({loader: 'css-loader', options: {
 const postcssLoader = {loader: 'postcss-loader'}
 const normalSassLoader = {loader: 'sass-loader', options: {includePaths: []}}
 
+const stats = 'verbose' // verbose normal minimal
+// const stats = {
+//   assets: true, // Add asset Information
+//   assetsSort: 'field', // Sort assets by a field
+//   cached: true, // Add information about cached (not built) modules
+//   cachedAssets: true, // Show cached assets (setting this to `false` only shows emitted files)
+//   children: true, // Add children information
+//   chunks: true, // Add chunk information (setting this to `false` allows for a less verbose output)
+//   chunkModules: true, // Add built modules information to chunk information
+//   chunkOrigins: true, // Add the origins of chunks and chunk merging info
+//   chunksSort: 'field', // Sort the chunks by a field
+//   context: ROOT_DIR, // Context directory for request shortening
+//   colors: true, // `webpack --colors` equivalent
+//   depth: false, // Display the distance from the entry point for each module
+//   entrypoints: false, // Display the entry points with the corresponding bundles
+//   errors: true, // Add errors
+//   errorDetails: true, // Add details to errors (like resolving log)
+//   exclude: [], // Exclude modules which match one of the given strings or regular expressions
+//   hash: true, // Add the hash of the compilation
+//   maxModules: 15, // Set the maximum number of modules to be shown
+//   modules: true, // Add built modules information
+//   modulesSort: 'field', // Sort the modules by a field
+//   performance: true, // Show performance hint when file size exceeds `performance.maxAssetSize`
+//   providedExports: false, // Show the exports of the modules
+//   publicPath: true, // Add public path information
+//   reasons: true, // Add information about the reasons why modules are included
+//   source: true, // Add the source code of modules
+//   timings: true, // Add timing information
+//   usedExports: false, // Show which exports of a module are used
+//   version: true, // Add webpack version information
+//   warnings: true
+// }
+
 module.exports = {
   devtool: env.DEV ? 'eval' : 'source-map', // eval: Fastest at the expense of detail
   // devtool: 'source-map',
@@ -95,9 +128,12 @@ module.exports = {
     }),
 
     new CopyWebpackPlugin([
-      {from: path.join(SRC_DIR, 'static'), to: 'static'},
       {from: path.join(SERVER_DIR, 'share'), to: 'share'}
-    ]),
+    ].concat(
+      fs.existsSync(path.join(SRC_DIR, 'static'))
+        ? {from: path.join(SRC_DIR, 'static'), to: 'static'}
+        : []
+    )),
 
     new webpack.ProvidePlugin({
       React: 'react',
@@ -106,8 +142,9 @@ module.exports = {
 
     new webpack.optimize.CommonsChunkPlugin({
       name: 'common',
-      // minSize: 1000,
+      minSize: 2000,
       minChunks: (module, count) => {
+        if (process.env.NO_COMMON) return false
         let res = module.resource
         // FIXME: 如何更好地判断是系统使用的文件？
         // 当前方法是：将 minSize 去掉，最简源代码的情况下 common.js 应该非常小；
@@ -191,17 +228,20 @@ module.exports = {
       RC_USE_CSS_MODULE
         ? {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [getModuleCssLoader(2), postcssLoader, normalSassLoader]})} // module
         : {test: /\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [getNormalCssLoader(2), postcssLoader, normalSassLoader]})}, // normal
-      // {test: /\.s(c|a)ss$/, use: ['style-loader', normalCssLoader, normalSassLoader]} // inline
+
+      // {test: /\.inline\.s(c|a)ss$/, use: ['style-loader', getNormalCssLoader(2), postcssLoader, normalSassLoader]}, // inline
+      // {test: /\.local\.s(c|a)ss$/, use: ExtractTextPlugin.extract({fallback: 'style-loader', use: [getModuleCssLoader(2), postcssLoader, normalSassLoader]})}, // module
 
       // 静态资源必须要打上 hash，否则不同文件夹下如果有相同的文件会导致重名
-      {test: /\.(gif|png|jpg|jpeg)$/, use: 'url-loader?limit=2048&name=static/[hash].[ext]'},
-      {test: /\.(ico|svg|woff|woff2|ttf|eot|otf)$/, use: 'file-loader?name=static/[hash].[ext]'}
+      {test: /\.(gif|png|jpg|jpeg|svg)$/, use: 'url-loader?limit=2048&name=static/[hash].[ext]'},
+      {test: /\.(ico|woff|woff2|ttf|eot|otf)$/, use: 'file-loader?name=static/[hash].[ext]'}
     ]
   },
 
+  stats,
   devServer: {
     contentBase: SERVER_DIR,
-    stats: 'minimal', // verbose normal minimal
+    stats,
     port: env.PORT,
     host: env.HOST,
     historyApiFallback: true
@@ -219,6 +259,7 @@ function getPagesFromTemplates(templates) {
 }
 
 function outputEnv(env) {
+  if (process.env.JSON) return
   let KEYS = Object.keys(env)
   let MAX_LENGTH = Math.max(...KEYS.map(k => k.length)) + 2
 
