@@ -24,9 +24,8 @@ import PageVisibility from 'libs/utils/PageVisibility'
   function process() {
     video.volume = 0.1
 
-    let statusEl = document.getElementById('status')
     ifvisible.setIdleDuration(30)
-    ifvisible.on('statusChanged', e => (statusEl.innerHTML = statusEl.innerHTML + `<div>${e.status}</div>`))
+    ifvisible.on('statusChanged', e => console.log('status: %o', e.status))
 
     // FIXME: ifvisible.now('active') 在初始化情况下永远都是 true（没有考虑打开时就是 hidden 的情况）
     // FIXME: 浏览器在其它应用程序窗口下面，也会使视频播放

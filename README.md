@@ -54,3 +54,5 @@
 
     style-loader css-loader postcss-loader sass-loader
     file-loader url-loader
+
+    webpack-bundle-size-analyzer # 分析 webpack 生成的 JSON 文件
