@@ -20,7 +20,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "eustia-module": "0.5.0",
+    "eustia-module": "0.6.0",
     "ifvisible.js": "1.0.6",
     "mora-scripts": "1.6.2",
     "prop-types": "15.5.8",
