@@ -1,6 +1,8 @@
 
 ## TODOs
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/qiu8310/playground.svg)](https://greenkeeper.io/)
+
 * [ ] 测试集成
 * [ ] 添加 libs 中的通用功能
 * [ ] fix: webpack.config.js 中提取 commonChunk 的 minChunk 函数
